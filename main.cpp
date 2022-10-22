@@ -38,6 +38,7 @@ public:
 
     ~Game() {
         SDL_DestroyWindow(window);
+        IMG_Quit();
         SDL_Quit();
     }
     int init() {
@@ -79,6 +80,9 @@ public:
 
         SDL_Event e;
         bool quit = false;
+        int posx = 0;
+        int posy = 0;
+        int howfast = 10;
         while (!quit) {
             while (SDL_PollEvent(&e) != 0) {
                 if (e.type == SDL_QUIT) {
@@ -86,13 +90,17 @@ public:
                 } else if (e.type == SDL_KEYDOWN) {
                     switch (e.key.keysym.sym) {
                     case SDLK_UP:
-                        break;
+                        posy -= howfast;
+                      break;
                     case SDLK_DOWN:
-                        break;
+                        posy += howfast;
+                      break;
                     case SDLK_LEFT:
+                        posx -= howfast;
                         break;
                     case SDLK_RIGHT:
-                        break;
+                      posx+= howfast;
+                      break;
                     case SDLK_q:
                         quit = true;
                         break;
@@ -101,8 +109,8 @@ public:
                     }
                 }
                 SDL_Rect rect;
-                rect.x = 0;
-                rect.y = 0;
+                rect.x = posx;
+                rect.y = posy;
                 rect.w = SCREEN_WIDTH / 2;
                 rect.h = SCREEN_HEIGHT / 2;
 
