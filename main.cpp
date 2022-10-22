@@ -1,23 +1,30 @@
+#include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_video.h>
+#include <SDL2/SDL_image.h>
 #include <iostream>
-#include <SDL2/SDL.h>
-
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
 
-class Surface {
+class Image {
 public:
     SDL_Surface* surface;
 public:
-    Surface(std::string path) {
-        this->surface = SDL_LoadBMP(path.c_str());
+    Image(std::string path) {
+        if(path.substr(path.size() - 3) == "bmp") {
+            std::cout << "Loading BMP image: " << path << std::endl;
+            this->surface =
+              SDL_LoadBMP(path.c_str());
+        } else {
+          std::cout << "Loading image: " << path << std::endl;
+          this->surface = IMG_Load(path.c_str());
+        }
     }
-    ~Surface() { SDL_FreeSurface(this->surface); }
+    ~Image() { SDL_FreeSurface(this->surface); }
 };
 
 
@@ -43,6 +50,11 @@ public:
             SDL_Quit();
             return 1;
         }
+
+        if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
+            std::cout << "SDL_image could not initialise! SDL_image Error: " << IMG_GetError() << std::endl;
+        }
+
         this->window = SDL_CreateWindow("edo", SDL_WINDOWPOS_UNDEFINED,
                                         SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
                                         SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
@@ -59,7 +71,7 @@ public:
 
     void start() {
 
-        Surface placeholder_img = Surface("placeholder.bmp");
+        Image placeholder_img = Image("placeholder.png");
 
         screen_surface = SDL_GetWindowSurface(window);
         SDL_FillRect(screen_surface, nullptr,
