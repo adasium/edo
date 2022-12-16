@@ -1,14 +1,82 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_video.h>
-#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
+#include <cassert>
+#include <sstream>
+#include <string>
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
+
+namespace util {
+    SDL_Color color(std::string color) {
+        assert(color.length() == 8 || color.length() == 6);
+        SDL_Color c;
+        c.r = std::stoul(color.substr(0, 1), nullptr, 16);
+        c.g = std::stoul(color.substr(2, 3), nullptr, 16);
+        c.b = std::stoul(color.substr(4, 5), nullptr, 16);
+        c.a = 0xFF;
+        if (color.length() == 8) {
+            c.a = std::stoul(color.substr(5, 6), nullptr, 16);
+        }
+        return c;
+    }
+}
+
+
+class Font {
+public:
+    TTF_Font* font;
+public:
+    Font(std::string path) {
+        this->font =
+            TTF_OpenFont(path.c_str(), 28);
+        if (!this->font) {
+            std::cout << "[FONT] Unable to load font " << path
+                      << "! SDL Error: " << SDL_GetError() << std::endl;
+        } else {
+          std::cout << "[FONT] Loading TTF font: " << path << std::endl;
+        }
+    }
+    ~Font() {
+        TTF_CloseFont(this->font);
+    }
+};
+
+
+class Text {
+public:
+    std::string text;
+    SDL_Surface *textSurface;
+    SDL_Texture *textTexture;
+
+  Text(std::string text, Font *font, SDL_Colour *colour) {
+      this->text = text;
+    this->textTexture = nullptr;
+    this->textSurface = TTF_RenderText_Solid(font->font, text.c_str(), *colour);
+  }
+
+  ~Text() {}
+
+  void render(SDL_Renderer *renderer, int x, int y, int size = 10) {
+    if (!this->textTexture) {
+      this->textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    }
+    SDL_Rect where;
+    where.x = x;
+    where.y = y;
+    where.w = this->text.length() * size;
+    where.h = size;
+
+    SDL_RenderCopy(renderer, this->textTexture, nullptr, &where);
+  }
+};
 
 
 class Image {
@@ -34,8 +102,8 @@ public:
       std::cout << "[IMG] Loading image texture: " << path << std::endl;
       this->texture = SDL_CreateTextureFromSurface(renderer, this->surface);
       if (!this->texture){
-        std::cout << "[IMG] Unable to create texture from " << path
-                  << "! SDL Error: " << SDL_GetError() << std::endl;
+          std::cout << "[IMG] Unable to create texture from " << path
+                    << "! SDL Error: " << SDL_GetError() << std::endl;
       }
     }
     ~Image() {
@@ -53,11 +121,13 @@ class Game {
     SDL_Surface *screen_surface = nullptr;
     SDL_Renderer *renderer = nullptr;
 
+    Font* font;
 
 public:
     Game() {}
 
     ~Game() {
+        delete this->font;
         SDL_DestroyRenderer(this->renderer);
         SDL_DestroyWindow(this->window);
         IMG_Quit();
@@ -93,6 +163,10 @@ public:
             SDL_DestroyWindow(window);
             return 1;
         }
+        if (TTF_Init() == -1) {
+            return 1;
+        }
+        this->font = new Font("fonts/VictorMono-Regular.ttf");
         return 0;
     }
 
@@ -145,8 +219,12 @@ public:
                 rect.w = SCREEN_WIDTH / 2;
                 rect.h = SCREEN_HEIGHT / 2;
 
+                SDL_Colour colour = util::color("0000FF");
+                Text text = Text("XD", this->font, &colour);
+
                 SDL_RenderClear(this->renderer);
                 SDL_RenderCopy(this->renderer, placeholder_img.texture, nullptr, &rect);
+                text.render(this->renderer, rect.x, rect.y, 40);
                 SDL_RenderPresent(this->renderer);
             }
         }
